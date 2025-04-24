@@ -5,20 +5,10 @@ parameters:
     type: string
     default: "circle_ci_example"
 
-
-executors:
-  default-docker-large:
-    docker:
-      - image: cimg/base:stable
-        resource_class: large
-  default-docker-2xlarge:
-    docker:
-      - image: cimg/base:stable
-        resource_class: 2xlarge
-
 jobs:
   build-docker-image:
-    executor: default-docker-large
+    docker:
+      - image: cimg/base:stable
     steps:
       - checkout
       - setup_remote_docker
@@ -34,9 +24,7 @@ jobs:
           root: .
           paths:
             - << pipeline.parameters.app_name >>.tar.gz
-
   deploy-compose:
-    executor: default-docker-2xlarge
     parameters:
       host:
         type: string
@@ -47,6 +35,8 @@ jobs:
       compose_file:
         type: string
         default: ""
+    docker:
+      - image: cimg/base:stable
     steps:
       - checkout
       - setup_remote_docker
