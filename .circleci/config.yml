@@ -3,7 +3,7 @@ version: 2.1
 parameters:
   app_name:
     type: string
-    default: "Circle_CI_example"
+    default: "circle_ci_example"
 
 jobs:
   build-docker-image:
