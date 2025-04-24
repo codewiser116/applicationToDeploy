@@ -9,6 +9,7 @@ jobs:
   build-docker-image:
     docker:
       - image: cimg/base:stable
+    resource_class: large
     steps:
       - checkout
       - setup_remote_docker
@@ -37,6 +38,7 @@ jobs:
         default: ""
     docker:
       - image: cimg/base:stable
+    resource_class: 2xlarge
     steps:
       - checkout
       - setup_remote_docker
