@@ -38,7 +38,7 @@ jobs:
         default: ""
     docker:
       - image: cimg/base:stable
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - checkout
       - setup_remote_docker
