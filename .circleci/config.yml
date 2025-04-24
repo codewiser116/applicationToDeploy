@@ -13,17 +13,22 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
+          name: "Install zstd"
+          command: |
+            sudo apt-get update && sudo apt-get install -y zstd
+      - run:
           name: "Build docker image"
           command: |
             docker build -t << pipeline.parameters.app_name >>:latest .
       - run:
-          name: "Compress docker image"
+          name: "Compress docker image with zstd"
           command: |
-            docker save << pipeline.parameters.app_name >>:latest | gzip > << pipeline.parameters.app_name >>.tar.gz
+            docker save << pipeline.parameters.app_name >>:latest | zstd -T0 -o << pipeline.parameters.app_name >>.tar.zst
       - persist_to_workspace:
           root: .
           paths:
-            - << pipeline.parameters.app_name >>.tar.gz
+            - << pipeline.parameters.app_name >>.tar.zst
+
   deploy-compose:
     parameters:
       host:
@@ -43,17 +48,16 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Setup SSH
+          name: Setup SSH with multiplexing
           command: |
-            echo << parameters.ssh >> | base64 --decode > ssh.pem
+            echo "<< parameters.ssh >>" | base64 --decode > ssh.pem
             chmod 400 ssh.pem
+            mkdir -p ~/.ssh/tmp
+            echo -e "Host *\n  ControlMaster auto\n  ControlPath ~/.ssh/tmp/ssh_mux_%h_%p_%r\n  ControlPersist 10m" >> ~/.ssh/config
       - run:
-          name: Install docker using snapd if not exists
+          name: Install rsync
           command: |
-            ssh -o "StrictHostKeyChecking=no" -i ./ssh.pem ubuntu@<< parameters.host >> '
-            if ! [ -x "$(command -v docker)" ]; then
-              sudo snap install docker
-            fi'
+            sudo apt-get update && sudo apt-get install -y rsync
       - run:
           name: If COMPOSE_FILE exists then sed it
           command: |
@@ -68,15 +72,17 @@ jobs:
               sudo docker compose -f << parameters.compose_file >> down --rmi all
             fi'
       - run:
-          name: Copy files to server
+          name: Copy files to server using rsync
           command: |
-            scp -o "StrictHostKeyChecking=no" -i ./ssh.pem << pipeline.parameters.app_name >>.tar.gz << parameters.compose_file >> ubuntu@<< parameters.host >>:~/
+            rsync -e "ssh -o StrictHostKeyChecking=no -i ./ssh.pem" -avz << pipeline.parameters.app_name >>.tar.zst << parameters.compose_file >> ubuntu@<< parameters.host >>:~/
       - run:
-          name: Load docker image and remove tar.gz
+          name: Load docker image and remove tar
           command: |
             ssh -o "StrictHostKeyChecking=no" -i ./ssh.pem ubuntu@<< parameters.host >> '
-            sudo docker load -i << pipeline.parameters.app_name >>.tar.gz
-            sudo rm << pipeline.parameters.app_name >>.tar.gz
+            sudo apt-get update && sudo apt-get install -y zstd &&
+            zstd -d << pipeline.parameters.app_name >>.tar.zst -o << pipeline.parameters.app_name >>.tar &&
+            sudo docker load -i << pipeline.parameters.app_name >>.tar &&
+            rm << pipeline.parameters.app_name >>.tar.zst << pipeline.parameters.app_name >>.tar
             '
       - run:
           name: Start containers
