@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'agent1' }
+    agent { label 'agent2' }
 
     environment {
         IMAGE_NAME = 'my-spring-app'
