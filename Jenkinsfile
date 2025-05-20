@@ -1,56 +1,62 @@
 pipeline {
-    agent any
+    agent { label 'docker' }
+
+    environment {
+        IMAGE_NAME = 'my-spring-app'
+    }
+
     stages {
-        stage("Clone the project") {
+        stage("📥 Clone the project") {
             steps {
                 git branch: 'main', url: 'https://github.com/codewiser116/simple-java-app.git'
             }
         }
 
-        stage("Compilation and Tests") {
+        stage("⚙️ Compilation and Tests") {
             steps {
                 sh "./mvnw clean install -DskipTests"
                 sh "./mvnw test"
             }
         }
 
-        stage("Tests files") {
+        stage("🧪 Diagnostics") {
             steps {
-                sh "ls"
+                sh "ls -la"
                 sh "pwd"
             }
         }
 
-        stage("Stop old containers") {
+        stage("🧹 Cleanup Docker") {
             steps {
-                sh 'docker ps -q | while read -r container_id; do docker stop "$container_id"; done'
+                sh '''
+                  docker ps -q | xargs -r docker stop || true
+                  docker container prune -f || true
+                  docker image prune -af || true
+                '''
             }
         }
 
-        stage("Cleanup old containers") {
+        stage("🐳 Build Docker Image") {
             steps {
-                sh "docker container prune -f"
+                sh "docker build -t $IMAGE_NAME ."
             }
         }
 
-        stage("Cleanup old images") {
+        stage("🚀 Run Docker Container") {
             steps {
-                sh "docker image prune -af"
+                sh '''
+                  docker run -d -p 80:8001 --name my-spring-app $IMAGE_NAME
+                '''
             }
         }
+    }
 
-        stage("Build Docker Image") {
-            steps {
-                sh "docker build -t my-spring-app ."
-            }
+    post {
+        success {
+            echo '✅ Application built and deployed successfully!'
         }
-
-        stage("Run Docker Container") {
-            steps {
-                sh "docker container prune -f"
-                sh "sleep 2s"
-                sh "docker run -p 8001:8001 -d my-spring-app"
-            }
+        failure {
+            echo '❌ Build failed. Please check the logs.'
         }
     }
 }
