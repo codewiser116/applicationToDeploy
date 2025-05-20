@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'docker' }
+    agent { label 'agent1' }
 
     environment {
         IMAGE_NAME = 'my-spring-app'
