@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage("📥 Clone the project") {
             steps {
-                git branch: 'development', url: 'https://github.com/codewiser116/simple-java-app.git'
+                git branch: 'development', url: 'https://github.com/codewiser116/applicationToDeploy.git'
             }
         }
 
