@@ -6,6 +6,10 @@ pipeline {
         IMAGE_NAME = 'my-spring-app'
     }
 
+    tools {
+        maven 'Maven_3.9.4'  // only if not using ./mvnw
+    }
+
     stages {
         stage("📥 Clone the project") {
             steps {
@@ -50,10 +54,10 @@ pipeline {
                 '''
             }
         }
-        stage("📥 Run automation tests") {
+        stage("📦 Run Smoke Tests") {
             steps {
                 git branch: 'main', url: 'https://github.com/codewiser116/JenkinsSmokeProject.git'
-                sh "./mvnw test -Dcucumber.filter.tags='@smoke'"
+                sh "mvn test -Dcucumber.filter.tags='@smoke'"
             }
         }
     }
