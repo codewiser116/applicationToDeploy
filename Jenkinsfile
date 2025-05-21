@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage("📥 Clone the project") {
             steps {
-                git branch: 'development', url: 'https://github.com/codewiser116/applicationToDeploy.git'
+                git branch: 'main', url: 'https://github.com/codewiser116/applicationToDeploy.git'
             }
         }
 
@@ -48,6 +48,12 @@ pipeline {
                 sh '''
                   docker run -d -p 80:8001 --name my-spring-app $IMAGE_NAME
                 '''
+            }
+        }
+        stage("📥 Run automation tests") {
+            steps {
+                git branch: 'main', url: 'https://github.com/codewiser116/JenkinsSmokeProject.git'
+                sh "./mvnw test -Dcucumber.filter.tags='@smoke'"
             }
         }
     }
